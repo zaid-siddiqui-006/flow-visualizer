@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow Visualizer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <div class="header-row">
+      <div>
+        <h1>Flow Visualizer</h1>
+        <p>Explore streamlines, pathlines and streaklines.</p>
+      </div>
+      <button class="button secondary" id="themeButton" type="button">Light / Dark</button>
+    </div>
+    <section class="panel tips">
+      <strong>Try these presets to understand the curves:</strong>
+      <ul>
+        <li>Pulsating shear</li>
+        <li>Steady vortex</li>
+        <li>Travelling wave on uniform stream</li>
+        <li>Pulsating source in uniform stream (try 10 streak particles)</li>
+        <li>Expanding flow</li>
+      </ul>
+    </section>
+  </header>
+
+  <main class="layout">
+    <section class="panel controls">
+      <h2>Flow</h2>
+      <label>Preset
+        <select id="preset"></select>
+      </label>
+      <label>u(x, y, t)
+        <input id="u" type="text" spellcheck="false">
+      </label>
+      <label>v(x, y, t)
+        <input id="v" type="text" spellcheck="false">
+      </label>
+      <p class="error" id="errorMessage" aria-live="polite"></p>
+      <p class="help">Variables: x, y, t, a, b, c, w. Math functions such as sin, cos, exp, sqrt and abs are supported. Use ^ for powers.</p>
+
+      <h2>Parameters</h2>
+      <div id="parameters"></div>
+
+      <h2>Release point and time</h2>
+      <div class="two-columns">
+        <label>x₀ <input id="x0" type="number" step="0.1"></label>
+        <label>y₀ <input id="y0" type="number" step="0.1"></label>
+      </div>
+      <div class="two-columns">
+        <label>Release start t₀ <input id="t0" type="number" step="0.1"></label>
+        <label>Streak particles <input id="particleCount" type="number" min="5" max="300" step="5"></label>
+      </div>
+      <label>Observation time T: <strong id="timeValue">0.00</strong>
+        <input id="time" type="range" min="0" max="20" step="0.01">
+      </label>
+      <div class="button-row">
+        <button class="button" id="playButton" type="button">▶ Animate T</button>
+        <button class="button secondary" id="resetButton" type="button">Reset preset</button>
+        <button class="button secondary" id="exportButton" type="button">Export PNG</button>
+      </div>
+
+      <h2>Domain</h2>
+      <div class="four-columns">
+        <label>x min <input id="xmin" type="number" step="0.5"></label>
+        <label>x max <input id="xmax" type="number" step="0.5"></label>
+        <label>y min <input id="ymin" type="number" step="0.5"></label>
+        <label>y max <input id="ymax" type="number" step="0.5"></label>
+      </div>
+
+      <h2>Show</h2>
+      <div class="checkboxes">
+        <label><input id="showVelocity" type="checkbox" checked> Velocity</label>
+        <label><input id="showPathline" type="checkbox" checked> Pathline</label>
+        <label><input id="showStreakline" type="checkbox" checked> Streakline</label>
+        <label><input id="showStreamline" type="checkbox" checked> Streamline</label>
+      </div>
+    </section>
+
+    <section class="visual-column">
+      <div class="canvas-wrap">
+        <canvas id="plot" aria-label="Flow visualization plot"></canvas>
+      </div>
+
+      <section class="panel theory">
+        <div class="theory-heading">
+          <h2>Understanding the three curves</h2>
+          <div class="language-toggle" role="group" aria-label="Explanation language">
+            <button class="language-button active" id="englishButton" type="button" aria-pressed="true">English</button>
+            <button class="language-button" id="hinglishButton" type="button" aria-pressed="false">Hinglish</button>
+          </div>
+        </div>
+
+        <div id="englishExplanation" class="explanation">
+          <h3>What is a streamline?</h3>
+        <p>Take a photo of a flow at one particular instant. The direction of the velocity in that photo, drawn as curves, gives the streamlines.</p>
+        <p>At time t₁ the velocity direction looked like some set of curves, and at time t₂ it looked like some other set. This does not mean a streamline is directly a function of time. A streamline is determined by the velocity field. If the velocity field changes with time, the streamlines change with time too. In steady flow the velocity field doesn’t change, so the streamlines are constant curves over time.</p>
+        <p>A streamline is a curve whose tangent at every point is along the velocity direction at that instant. One streamline passes through every point, so a single photo contains a whole family of streamlines, not just one curve.</p>
+
+        <h3>What is a pathline?</h3>
+        <p>Take a flowing fluid and pick one drop or water particle. Follow it. The path it travels, the line it moves along, is the pathline.</p>
+        <p>Once the particle is chosen (release point and release time fixed), its pathline is one fixed curve. Changing the observation time doesn’t change the curve, it only extends further as the particle moves on. In unsteady flow a streamline is different: it changes at every instant.</p>
+        <p>The pathline of particle P is given by x(t), y(t), which tells us where the particle went as time passed.</p>
+
+        <h3>What is a streakline?</h3>
+        <p>The velocity of the flow changes with time. So the particle released just behind the one we followed for the pathline need not follow the same path. For example, if the velocity varies sinusoidally, the particles behind it will not follow the first one. Each particle follows a somewhat different path.</p>
+        <p>To get a streakline, place a dye injector at a fixed point A that continuously releases particles. At time t₂, take a snapshot and join the current positions of all particles that passed through A at any time before t₂. The joined line is the streakline of point A at time t₂.</p>
+        <p>The oldest particle has travelled farthest, and the newest particle is still at A. We join the particles in order of their release time.</p>
+        <p>So a streakline changes with the observation time and also with the reference point we choose. It tells us what curve forms if all the particles released from one point are joined at a given time.</p>
+
+        <h3>Steady vs unsteady flow</h3>
+        <p>In steady flow, streamlines, pathlines and streaklines coincide. In unsteady flow, they can be different.</p>
+      </div>
+
+        <div id="hinglishExplanation" class="explanation hidden">
+          <h3>Streamline kya hoti hai?</h3>
+          <p>ek particular instant par kisi bhi flow ki photo lo ab us phot me jo flow ki velocity ka direction hoga wo streamline hai <br>
+at time 't1' velocity ka direction ye tha - some curve,,, and at time 't2' flow ki velocity ka direction ye tha - some other curve <br>
+this means streamline is a function of time -- NO, Streamline is a function of velocity field which if is a function of time then streamline will also be a function of time<br>
+else like in steady flows streamline are constant curves over time<br>
+streamline wo curve hai jiska tangent har point par us instant ki velocity ki direction mein hota hai<br>
+har point se ek streamline guzarti hai, to ek photo mein streamlines ka poora family hota hai, ek curve nahi
+</p>
+
+          <h3>Pathline kya hoti hai?</h3>
+          <p>jaise ki jo flow chal raha hai ab us flow me koi ek drop ya water particle pakad lo ab usko follow karo wo jo path travel karta hai i mean jis line par wo chalta hai wo pathline hai<br>
+ek baar particle chun liya (release point aur release time), to uski pathline ek fixed curve hai. Observation time badalne se curve nahi badalti, bas aage badhti jaati hai Streamline alag hai, wo har instant par badal jaati hai (unsteady flow me)<br>
+pathline ek particle ka poora trajectory hai, to wo x(t), y(t) ke form mein hoti hai, yaani time ke terms mein likhi jaati hai, pathline curve ki ek equation aayegi - like ye particular equation particle 'P' ki pathline ko represent karti hai ki wo particle 'P' samay ke saath kidhar kidhar kaise gaya hai</p>
+          
+          <h3>Streakline kya hoti hai?</h3>
+          <p>ab kyunki velocity change hogi flow ki <br>
+to zaruri nahi hai ki ki jis particle ko hum logon ne pathline observe karne ke liye pakda tha uske peeche wala particle bhi wohi path follow karega <br>
+jaise agar velocity sinosuidally change hogi to bilkul zaruri nahi hai ki uske peeche wala particle ya uske peeche wale particles bhi usko follow karen, har particle kuch alag path follow karega <br>
+agar hum log kisi time 't2' par flow ka screenshot lenge aur kisi ek point se pass hone wale saaare particles ko observe karen,,, to us time us point 'A' se pass hone wale saare particles ko is time 't2' par ek line se sabko join kar diya jaaye to hum logon ko streakline mil jaayegi<br>
+similarly agar hum at time 't1' screenshot len aur phir se us point 'B' se nikalne waale saare particles ko us time 't1' par ek line se jodd den to jo line banegi wo 'B' se nikalne waale saare particles ki streakline hogi<br>
+iska matlab ye hai ki streakline time ke saath bhi change hogi and jo reference point hum log pakad rahe hain uske saath bhi change hogi <br>
+streakline hum logon ko deta hai ki koi ek point se nikalne wale saare particles ko at any time 't0' agar join kia jaaye to kya curve banega <br>
+one correction - jo bhi particles t₂ se pehle kabhi bhi A se guzre hain, unki t₂ par positions ko jodo. Yaani A par ek dye injector lagao jo lagataar particles chhodta hai, aur t₂ par photo lo ,,, Is wajah se sabse purana particle sabse door hota hai aur sabse naya particle A par hi hota hai. Particles ko release time ke order mein jodte hain.</p>
+          
+          <h3>Steady aur unsteady flow mein difference</h3>
+          <p>Steady flow mein streamlines, pathlines aur streaklines ek hi hoti hain. Lekin unsteady flow mein ye teeno alag-alag ho sakti hain.</p>
+        </div>
+      </section>
+
+      <img id="exportedImage" class="exported-image" alt="Exported flow plot">
+      <p id="exportNote" class="help hidden">Right-click or long-press the image to save it.</p>
+      <p class="help">The velocity arrows, streamline and streakline are shown at time T. The pathline follows one particle released at (x₀, y₀) at t₀. The streakline joins particles released from (x₀, y₀) at different times, all observed at T.</p>
+    </section>
+  </main>
+</body>
+</html>
